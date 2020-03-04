@@ -1,5 +1,4 @@
-.egg-info
-.egg-info\
-.tar.gz
-.whl
-.pyc
+gfracture.egg-info/
+*.gz
+*.whl
+*.pyc
