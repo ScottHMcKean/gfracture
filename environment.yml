@@ -1,0 +1,9 @@
+name: gfracture
+dependencies:
+  - numpy
+  - pandas
+  - scikit-image
+  - scipy
+  - matplotlib
+  - shapely
+  - geopandas

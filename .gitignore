@@ -2,3 +2,5 @@ gfracture.egg-info/
 *.gz
 *.whl
 *.pyc
+output/
+data/
