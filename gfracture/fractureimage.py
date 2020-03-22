@@ -4,6 +4,7 @@ from skimage.restoration import denoise_bilateral
 from skimage.feature import canny
 from skimage.morphology import binary_closing, square
 from skimage.transform import probabilistic_hough_line
+from skimage.segmentation import clear_border
 from shapely.geometry import LineString
 import geopandas as gpd
 from gfracture.canny import canny_std, canny_horiz
@@ -13,9 +14,9 @@ class FractureImage(object):
     """A class to contain the results of fracture segmentation on 
     a core or outcrop image"""
     
-    denoise_spatial_sd = 1
+    denoise_spatial_sd = 0.33
     canny_method = None
-    sig_threshold = 0.5
+    canny_threshold = 0.5
     gap_fill_px = 3
     show_figures = False
     save_figures = False
@@ -31,7 +32,7 @@ class FractureImage(object):
     def list_params(self):
         """ Print a list of object parameters """
         print('denoise_spatial_sd: ' + str(self.denoise_spatial_sd))
-        print('sig_threshold: ' + str(self.sig_threshold))
+        print('canny_threshold: ' + str(self.canny_threshold))
         print('gap_fill_px: ' + str(self.gap_fill_px)) 
         print('show_figures: ' + str(self.show_figures))
         print('save_figures: ' + str(self.save_figures))
@@ -49,6 +50,10 @@ class FractureImage(object):
     def denoise(self):
         """ Run a bilateral denoise on the raw image """
         print('Denoising Image')
+
+        if self.denoise_spatial_sd <= 0.15:
+            print('setting denoise_spatial_sd to 0.15 (minimum value')
+            self.denoise_spatial_sd = 0.15
         
         self.img_denoised = denoise_bilateral(
                 self.img, sigma_spatial = self.denoise_spatial_sd, 
@@ -67,10 +72,10 @@ class FractureImage(object):
         """
         if self.canny_method == 'horizontal':
             print('Running Horizontal One-Way Gradient Canny Detector')
-            self.img_edges = canny_horiz(self.img_denoised, self.sig_threshold)
+            self.img_edges = canny_horiz(self.img_denoised, self.canny_threshold)
         else: 
             print('Running Standard Canny Detector')
-            self.img_edges = canny_std(self.img_denoised, self.sig_threshold)
+            self.img_edges = canny_std(self.img_denoised, self.canny_threshold)
         
         if self.show_figures:
             io.imshow(self.img_edges)
@@ -137,6 +142,7 @@ class FractureImage(object):
         
         self.img_large_edges = self.img_labelled.copy()
         self.img_large_edges[np.invert(large_edge_bool)] = 0
+        self.img_large_edges = clear_border(self.img_large_edges,buffer_size=2)
 
         if self.show_figures:
             io.imshow(self.img_large_edges)
