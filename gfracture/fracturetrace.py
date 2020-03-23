@@ -2,6 +2,11 @@ from gfracture.functions import convert_geo_list_to_geoseries
 from gfracture.functions import make_vertical_segments
 from gfracture.functions import make_horizontal_segments
 from gfracture.functions import make_polygon_from_tuple
+import geopandas as gpd
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+from shapely.geometry import Point, LineString, Polygon
 
 class FractureTrace(object):
     """A class to contain the results of fracture trace analysis from 
@@ -417,7 +422,6 @@ class FractureTrace(object):
             self.make_vert_scanline_spacing_df()
     
     def calc_horizontal_scanline_stats(self):
-        
         self.horizontal_scanlines['frac_to_frac_length'] = [
                 max(points.x) - min(points.x) 
                 if len(points) > 0
@@ -452,8 +456,7 @@ class FractureTrace(object):
        
         print('Horizontal scanline stats calculated')
         
-    def calc_vertical_scanline_stats(self):
-        
+    def calc_vertical_scanline_stats(self):   
         self.vertical_scanlines['frac_to_frac_length'] = [
                 max(points.y) - min(points.y) 
                 if len(points) > 0

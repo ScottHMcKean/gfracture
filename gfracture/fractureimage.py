@@ -127,51 +127,28 @@ class FractureImage(object):
         edge_cov = sum(self.edge_dict.values()) / self.img_labelled.size * 100
         
         print(str(edge_cov) + '% edge coverage')
-        
-    def find_large_edges(self):
-        """ Label connected edges/components using skimage wrapper """ 
-        self.large_edge_dict = {k: v for k, v 
-                                in self.edge_dict.items()
-                                if v >= self.min_large_edge_px}
-        
-        large_edge_cov = len(self.large_edge_dict) / len(self.edge_dict) * 100
-        
-        print(str(large_edge_cov) + '% large edges')
-        
-        large_edge_bool = np.isin(self.img_labelled, list(self.large_edge_dict.keys()))
-        
-        self.img_large_edges = self.img_labelled.copy()
-        self.img_large_edges[np.invert(large_edge_bool)] = 0
-        self.img_large_edges = clear_border(self.img_large_edges,buffer_size=2)
-
-        if self.show_figures:
-            io.imshow(self.img_large_edges)
-            plt.show()
-
-        if self.save_figures:
-            io.imsave('./output/img_large_edges.png',util.img_as_ubyte(self.img_large_edges > 0))
             
     def run_phough_transform(self):
         """ Run the Probabilistic Hough Transform """
         print('Running Probabilistic Hough Transform')
         
         self.lines = probabilistic_hough_line(
-                self.img_large_edges,    
+                self.img_labelled,    
                 line_length=self.phough_min_line_length_px,
                 line_gap=self.phough_line_gap_px,
                 threshold = self.phough_accumulator_threshold)
         
         if self.show_figures:
             fig, ax = plt.subplots(1, 1)
-            io.imshow(self.img_large_edges * 0)
             for line in self.lines:
                 p0, p1 = line
                 ax.plot((p0[0], p1[0]), (p0[1], p1[1]))
-            ax.set_xlim((0, self.img_large_edges.shape[1]))
-            ax.set_ylim((self.img_large_edges.shape[0], 0))
+            ax.set_xlim((0, self.img_labelled.shape[1]))
+            ax.set_ylim((self.img_labelled.shape[0], 0))
+            ax.set_aspect('equal')
             if self.save_figures:
-                plt.savefig('./output/phough_transform.pdf')
-                plt.savefig('./output/phough_transform.png')
+                fig.savefig('./output/phough_transform.pdf')
+                fig.savefig('./output/phough_transform.png')
             plt.show()
             
     def convert_linestrings(self):
@@ -193,6 +170,8 @@ class FractureImage(object):
         """ Save geopandas linestrings as shapefile """
         print('Exporting linestrings')
         
-        self.linestrings.to_file("./output/linestrings.shp")
+        self.linestrings.to_file(
+            "./output/linestrings.shp",
+            driver='ESRI Shapefile')
     
 

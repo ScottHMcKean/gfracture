@@ -2,7 +2,6 @@
 """
 Wrapper for FractureImage workflow
 """
-import gfracture
 from gfracture.fractureimage import FractureImage
 
 # load and set output flags
@@ -27,9 +26,9 @@ sample.label_edges()
 sample.count_edges()
 
 # run the probabilistic hough transform
-sample.phough_min_line_length_px = 25
+sample.phough_min_line_length_px = 50
 sample.phough_line_gap_px = 10
-sample.phough_accumulator_threshold = 10
+sample.phough_accumulator_threshold = 50
 sample.run_phough_transform()
 
 # create shapely linestrings and export

@@ -1,9 +1,14 @@
+import geopandas as gpd
+import numpy as np
+import pandas as pd
+from shapely.geometry import Point, LineString, Polygon
+
 def convert_geo_list_to_geoseries(geo_list):
     for i in range(0, len(geo_list)):
-        if i == 0:
-            out = gpd.GeoSeries(geo_list[i])
-        else:
+        try: 
             out = out.append(geo_list[i]) 
+        except:
+            out = gpd.GeoSeries(geo_list[i])         
 
     return out
 
