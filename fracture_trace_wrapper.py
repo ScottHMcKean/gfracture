@@ -9,6 +9,7 @@ from gfracture.fracturetrace import FractureTrace
 # Initialize and load
 trace = FractureTrace()
 trace.show_figures = True
+trace.save_figures = True
 trace.limit_direction_to = 'none'
 trace.load_traces('./data/linestrings.shp')
 trace.load_masks('./data/side_mask.shp')
@@ -26,8 +27,8 @@ trace.calc_scanline_stats()
 trace.write_scanline_tables()
 
 # make rolling segments along scanlines
-trace.segment_width_m = 1
-trace.segment_step_increment_m = 1
+trace.segment_width_m = 0.05
+trace.segment_step_increment_m = 0.05
 trace.make_segments()
 trace.mask_segments()
 trace.intersect_segments()
@@ -35,8 +36,8 @@ trace.calc_segment_stats()
 trace.write_segment_tables()
 
 # make rolling windows
-trace.window_width_m = 1
-trace.window_step_increment_m = 1
+trace.window_width_m = 0.05
+trace.window_step_increment_m = 0.05
 trace.make_windows()
 trace.mask_windows()
 trace.intersect_windows()

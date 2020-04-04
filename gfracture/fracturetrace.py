@@ -6,6 +6,7 @@ import geopandas as gpd
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from shapely import geometry
 from shapely.geometry import Point, LineString, Polygon
 
 class FractureTrace(object):
