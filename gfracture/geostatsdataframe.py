@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
-from scipy import 
+from scipy.stats import norm, rankdata
+from scipy import spatial
 
 class GeostatsDataFrame(object):
     """A class to load an transform a table of xy + feature values into
@@ -18,13 +19,14 @@ class GeostatsDataFrame(object):
             self.input = pd_df
         
         self.input.columns = (
-                    self.input.columns
-                    .str.strip()
-                    .str.lower()
-                    .str.replace(' ', '_')
-                    .str.replace('(', '')
-                    .str.replace(')', '')
-                    )
+            self.input.columns
+            .str.strip()
+            .str.lower()
+            .str.replace(' ', '_')
+            .str.replace('(', '')
+            .str.replace(')', '')
+            )
+            
         print(self.input.head())
         
     def set_coord_cols(self, coord_tuple):

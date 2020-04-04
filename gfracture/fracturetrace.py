@@ -42,6 +42,9 @@ class FractureTrace(object):
         
         if self.show_figures:
             self.traces.plot()
+            if self.save_figures:
+                plt.savefig('./output/traces.pdf')
+                plt.savefig('./output/traces.png')
             plt.show()
             
     def load_masks(self, file_path):
@@ -83,12 +86,15 @@ class FractureTrace(object):
         print('Masking traces (saved & overwritten)')
         
         if self.show_figures:
-                fig, ax = plt.subplots(1, 1)
-                self.traces_orig.plot(color = 'k', ax=ax, alpha = 0.5)
-                self.traces.plot(color = 'r', ax=ax)
-                for mask in self.masks:
-                    ax.plot(*mask.exterior.xy, color = 'b')
-                plt.show()
+            _,ax = plt.subplots(1, 1)
+            self.traces_orig.plot(color = 'k', ax=ax, alpha = 0.5)
+            self.traces.plot(color = 'r', ax=ax)
+            for mask in self.masks:
+                ax.plot(*mask.exterior.xy, color = 'b')
+            if self.save_figures:
+                plt.savefig('./output/masked_traces.pdf')
+                plt.savefig('./output/masked_traces.png')
+            plt.show()
         
     def make_horizontal_scanlines(self):
         """ Generate horizontal scanlines """
@@ -96,9 +102,9 @@ class FractureTrace(object):
         horiz_limits = list(self.traces.total_bounds[i] for i in [0,2])
         
         vert_splits = np.arange(
-                min(vert_limits) + self.scanline_distance_m/2, 
-                max(vert_limits), self.scanline_distance_m
-                )
+            min(vert_limits) + self.scanline_distance_m/2, 
+            max(vert_limits), self.scanline_distance_m
+            )
         
         start = list(zip(np.repeat(min(horiz_limits),len(vert_splits)), vert_splits))
         end = list(zip(np.repeat(max(horiz_limits),len(vert_splits)), vert_splits))
@@ -106,10 +112,10 @@ class FractureTrace(object):
         names = ['scan_h_' + str(i) for i in np.arange(0,len(lines))+1]
             
         self.horizontal_scanlines = gpd.GeoDataFrame({
-                'name': names,
-                'y_coord': vert_splits},
-                geometry = gpd.GeoSeries(map(LineString, lines))
-                )
+            'name': names,
+            'y_coord': vert_splits},
+            geometry = gpd.GeoSeries(map(LineString, lines))
+            )
         
         self.horizontal_scanlines['orig_length'] = self.horizontal_scanlines.length
         self.horizontal_scanlines['orig_geom'] = self.horizontal_scanlines['geometry']
@@ -122,9 +128,9 @@ class FractureTrace(object):
         horiz_limits = list(self.traces.total_bounds[i] for i in [0,2])
         
         horiz_splits = np.arange(
-                min(horiz_limits) + self.scanline_distance_m/2, 
-                max(horiz_limits), self.scanline_distance_m
-                )
+            min(horiz_limits) + self.scanline_distance_m/2, 
+            max(horiz_limits), self.scanline_distance_m
+            )
         
         start = list(zip(horiz_splits, np.repeat(min(vert_limits),len(horiz_splits))))
         end = list(zip(horiz_splits, np.repeat(max(vert_limits),len(horiz_splits))))
@@ -132,10 +138,10 @@ class FractureTrace(object):
         names = ['scan_v' + str(i) for i in np.arange(0,len(lines))+1]
             
         self.vertical_scanlines = gpd.GeoDataFrame({
-                'name': names,
-                'x_coord': horiz_splits},
-                geometry =  gpd.GeoSeries(map(LineString, lines))
-                )
+            'name': names,
+            'x_coord': horiz_splits},
+            geometry =  gpd.GeoSeries(map(LineString, lines))
+            )
         
         self.vertical_scanlines['orig_length'] = self.vertical_scanlines.length
         self.vertical_scanlines['orig_geom'] = self.vertical_scanlines['geometry']
@@ -152,7 +158,7 @@ class FractureTrace(object):
         print('Scanlines intersected with convex hull')
         
         if self.show_figures:
-            fig, ax = plt.subplots(1, 1)
+            _, ax = plt.subplots(1, 1)
             self.traces.plot(color = 'k', ax=ax)
             
             if self.limit_direction_to != 'vertical':
@@ -160,6 +166,10 @@ class FractureTrace(object):
                 
             if self.limit_direction_to != 'horizontal':
                 self.vertical_scanlines.plot(color = 'r', ax=ax)
+
+            if self.save_figures:
+                plt.savefig('./output/scanlines.pdf')
+                plt.savefig('./output/scanlines.png')
             
             plt.show()
         
@@ -167,7 +177,7 @@ class FractureTrace(object):
         self.horizontal_scanlines_orig = self.horizontal_scanlines
         
         for mask in self.masks: 
-            for (i,line) in enumerate(self.horizontal_scanlines.geometry):
+            for (i,_) in enumerate(self.horizontal_scanlines.geometry):
                 self.horizontal_scanlines.geometry[i] = self.horizontal_scanlines.geometry[i].difference(mask)
         
         self.horizontal_scanlines['masked_geom'] = self.horizontal_scanlines.geometry
@@ -179,7 +189,7 @@ class FractureTrace(object):
         self.vertical_scanlines_orig = self.vertical_scanlines
         
         for mask in self.masks: 
-            for (i,line) in enumerate(self.vertical_scanlines.geometry):
+            for (i,_) in enumerate(self.vertical_scanlines.geometry):
                 self.vertical_scanlines.geometry[i] = self.vertical_scanlines.geometry[i].difference(mask)
         
         self.vertical_scanlines['masked_geom'] = self.vertical_scanlines.geometry
@@ -195,7 +205,7 @@ class FractureTrace(object):
             self.mask_vertical_scanlines()
         
         if self.show_figures:
-            fig, ax = plt.subplots(1, 1)
+            _, ax = plt.subplots(1, 1)
             self.traces.plot(color = 'k', ax=ax)
             
             if self.limit_direction_to != 'vertical':
@@ -219,24 +229,30 @@ class FractureTrace(object):
                  )
             
             for mask in self.masks:
-                    ax.plot(*mask.exterior.xy, color = 'k')
+                ax.plot(*mask.exterior.xy, color = 'k')
+
+            if self.save_figures:
+                plt.savefig('./output/masked_scanlines.pdf')
+                plt.savefig('./output/masked_scanlines.png')
             
             plt.show()
 
     def hull_horizontal_scanlines(self):
         self.horizontal_scanlines.geometry = [
-                self.traces.unary_union.convex_hull.intersection(x) 
-                    for x 
-                    in self.horizontal_scanlines.geometry]
+            self.traces.unary_union.convex_hull.intersection(x) 
+            for x 
+            in self.horizontal_scanlines.geometry
+            ]
     
         self.horizontal_scanlines['hull_trimmed'] = self.horizontal_scanlines.geometry
         self.horizontal_scanlines['trimmed_length'] = self.horizontal_scanlines.length
      
     def hull_vertical_scanlines(self):
         self.vertical_scanlines.geometry = [
-                self.traces.unary_union.convex_hull.intersection(x) 
-                    for x 
-                    in self.vertical_scanlines.geometry]
+            self.traces.unary_union.convex_hull.intersection(x) 
+            for x 
+            in self.vertical_scanlines.geometry
+            ]
             
         self.vertical_scanlines['hull_trimmed'] = self.vertical_scanlines.geometry
         self.vertical_scanlines['trimmed_length'] = self.vertical_scanlines.length
@@ -251,7 +267,7 @@ class FractureTrace(object):
         print('Scanlines intersected with convex hull')
         
         if self.show_figures:
-            fig, ax = plt.subplots(1, 1)
+            _, ax = plt.subplots(1, 1)
             self.traces.plot(color = 'k', ax=ax)
             ax.plot(*self.traces.unary_union.convex_hull.exterior.xy, color = 'k')
             
@@ -264,49 +280,53 @@ class FractureTrace(object):
                 (self
                  .vertical_scanlines[~self.vertical_scanlines.is_empty]
                  .plot(color = 'b', ax=ax))
-                
+            
+            if self.save_figures:
+                plt.savefig('./output/hulled_scanlines.pdf')
+                plt.savefig('./output/hulled_scanlines.png')
+
             plt.show()
                 
     def intersect_horizontal_scanlines(self):
         self.horiz_scanline_intersections = [
-                self.traces.intersection(other = scanline) 
-                if ~scanline.is_empty else Linestring()
-                for scanline
-                in self.horizontal_scanlines.geometry
-                ]
+            self.traces.intersection(other = scanline) 
+            if ~scanline.is_empty else geometry.Linestring()
+            for scanline
+            in self.horizontal_scanlines.geometry
+            ]
         
         self.horiz_scanline_intersected_traces = [
-                self.traces[np.invert(intersection.geometry.is_empty)] 
-                for intersection
-                in self.horiz_scanline_intersections
-                ]
+            self.traces[np.invert(intersection.geometry.is_empty)] 
+            for intersection
+            in self.horiz_scanline_intersections
+            ]
         
         self.horiz_scanline_intersected_points = [
-                intersection[np.invert(intersection.is_empty)] 
-                for intersection
-                in self.horiz_scanline_intersections
-                ]
+            intersection[np.invert(intersection.is_empty)] 
+            for intersection
+            in self.horiz_scanline_intersections
+            ]
         
         print('Horizontal scanlines and traces intersected')
     
     def intersect_vertical_scanlines(self):
         self.vert_scanline_intersections = [
-                self.traces.intersection(other = scanline) 
-                for scanline
-                in self.vertical_scanlines.geometry
-                ]
+            self.traces.intersection(other = scanline) 
+            for scanline
+            in self.vertical_scanlines.geometry
+            ]
         
         self.vert_scanline_intersected_traces = [
-                self.traces[np.invert(intersection.geometry.is_empty)] 
-                for intersection
-                in self.vert_scanline_intersections
-                ]
+            self.traces[np.invert(intersection.geometry.is_empty)] 
+            for intersection
+            in self.vert_scanline_intersections
+            ]
         
         self.vert_scanline_intersected_points = [
-                intersection[np.invert(intersection.is_empty)] 
-                for intersection
-                in self.vert_scanline_intersections
-                ]
+            intersection[np.invert(intersection.is_empty)] 
+            for intersection
+            in self.vert_scanline_intersections
+            ]
         
         print('Vertical scanlines and traces intersected')
     
@@ -318,7 +338,7 @@ class FractureTrace(object):
             self.intersect_vertical_scanlines()
         
         if self.show_figures:
-            fig, ax = plt.subplots(1, 1)
+            _, ax = plt.subplots(1, 1)
             self.traces.plot(color = 'k', ax=ax, alpha=0.5)
             
             if self.limit_direction_to != 'vertical':
@@ -340,11 +360,15 @@ class FractureTrace(object):
                  )
                 
                 points_series = convert_geo_list_to_geoseries(
-                        self.vert_scanline_intersected_points
-                        )
+                    self.vert_scanline_intersected_points
+                    )
                 
                 points_series.plot(color = 'b', ax=ax, markersize=10)
             
+            if self.save_figures:
+                plt.savefig('./output/intersected_scanlines.pdf')
+                plt.savefig('./output/intersected_scanlines.png')
+
             plt.show()
     
     def make_horiz_scanline_spacing_df(self):
@@ -424,71 +448,71 @@ class FractureTrace(object):
     
     def calc_horizontal_scanline_stats(self):
         self.horizontal_scanlines['frac_to_frac_length'] = [
-                max(points.x) - min(points.x) 
-                if len(points) > 0
-                else np.nan
-                for points
-                in self.horiz_scanline_intersected_points
-                ]
+            max(points.x) - min(points.x) 
+            if len(points) > 0
+            else np.nan
+            for points
+            in self.horiz_scanline_intersected_points
+            ]
         
         point_frac_list = list(
-                zip([len(point) 
-                for point
-                in self.horiz_scanline_intersected_points], 
-                self.horizontal_scanlines['frac_to_frac_length'])
-                )
+            zip([len(point) 
+            for point
+            in self.horiz_scanline_intersected_points], 
+            self.horizontal_scanlines['frac_to_frac_length'])
+            )
         
         self.horizontal_scanlines['p10_frac'] = (
-                [x[0]/x[1] if x[1] > 0 else np.nan 
-                 for x in point_frac_list]
-                )
+            [x[0]/x[1] if x[1] > 0 else np.nan 
+                for x in point_frac_list]
+            )
         
         point_trimmed_list = list(
-                zip([len(point) 
-                for point
-                in self.horiz_scanline_intersected_points], 
-                self.horizontal_scanlines['trimmed_length'])
-                )
+            zip([len(point) 
+            for point
+            in self.horiz_scanline_intersected_points], 
+            self.horizontal_scanlines['trimmed_length'])
+            )
         
         self.horizontal_scanlines['p10_trimmed'] = (
-                [x[0]/x[1] if x[1] > 0 else np.nan 
-                 for x in point_trimmed_list]
-                )
+            [x[0]/x[1] if x[1] > 0 else np.nan 
+                for x in point_trimmed_list]
+            )
        
         print('Horizontal scanline stats calculated')
         
     def calc_vertical_scanline_stats(self):   
         self.vertical_scanlines['frac_to_frac_length'] = [
-                max(points.y) - min(points.y) 
-                if len(points) > 0
-                else np.nan
-                for points
-                in self.vert_scanline_intersected_points
-                ]
+            max(points.y) - min(points.y) 
+            if len(points) > 0
+            else np.nan
+            for points
+            in self.vert_scanline_intersected_points
+            ]
         
         point_frac_list = list(
-                zip([len(point) 
-                for point 
-                in self.vert_scanline_intersected_points], 
-                self.vertical_scanlines['frac_to_frac_length'])
-                )
+            zip([len(point) 
+            for point 
+            in self.vert_scanline_intersected_points], 
+            self.vertical_scanlines['frac_to_frac_length'])
+            )
         
         self.vertical_scanlines['p10_frac'] = (
-                [x[0]/x[1] if x[1] > 0 else np.nan 
-                 for x in point_frac_list]
-                )
+            [x[0]/x[1] if x[1] > 0 else np.nan 
+                for x in point_frac_list]
+            )
         
         point_trimmed_list = list(
-                zip([len(point) 
-                for point 
-                in self.vert_scanline_intersected_points], 
-                self.vertical_scanlines['trimmed_length'])
-                )
+            zip([len(point) 
+            for point 
+            in self.vert_scanline_intersected_points], 
+            self.vertical_scanlines['trimmed_length'])
+            )
         
         self.vertical_scanlines['p10_trimmed'] = (
-                [x[0]/x[1] if x[1] > 0 else np.nan 
-                 for x in point_trimmed_list]
-                )
+            [x[0]/x[1] if x[1] > 0 else np.nan 
+                for x in point_trimmed_list]
+            )
         
         print('Vertical scanline stats calculated')
         
@@ -502,53 +526,53 @@ class FractureTrace(object):
     def write_scanline_tables(self):
         if self.limit_direction_to != 'vertical':
             (self
-             .horizontal_scanlines
-             .drop(['geometry', 'orig_geom', 'masked_geom','hull_trimmed'], axis=1)
-             .to_csv('horizontal_scanlines.csv')
-             )
+                .horizontal_scanlines
+                .drop(['geometry', 'orig_geom', 'masked_geom','hull_trimmed'], axis=1)
+                .to_csv('horizontal_scanlines.csv')
+                )
             
             (self
-             .horiz_scanline_spacing_df
-             .drop(['geometry'], axis=1)
-             .to_csv('horiz_scanline_spacing.csv')
-             )
-            
+                .horiz_scanline_spacing_df
+                .drop(['geometry'], axis=1)
+                .to_csv('horiz_scanline_spacing.csv')
+                )
+                
         if self.limit_direction_to != 'horizontal':
             (self
-             .vertical_scanlines
-             .drop(['geometry', 'orig_geom', 'masked_geom','hull_trimmed'], axis=1)
-             .to_csv('vertical_scanlines.csv')
-             )
+                .vertical_scanlines
+                .drop(['geometry', 'orig_geom', 'masked_geom','hull_trimmed'], axis=1)
+                .to_csv('vertical_scanlines.csv')
+                )
             
             (self
-             .vert_scanline_spacing_df
-             .drop(['geometry'], axis=1)
-             .to_csv('vert_scanline_spacing.csv')
-             )
+                .vert_scanline_spacing_df
+                .drop(['geometry'], axis=1)
+                .to_csv('vert_scanline_spacing.csv')
+                )
             
     def make_vertical_segments(self):
         self.vertical_segments = pd.concat(
-                [make_vertical_segments(
-                        x, 
-                        step_increment = self.segment_step_increment_m,
-                        segment_width = self.segment_width_m
-                        )
-                for x
-                in self.vertical_scanlines.iterrows()]
-                ).reset_index()
+            [make_vertical_segments(
+                x, 
+                step_increment = self.segment_step_increment_m,
+                segment_width = self.segment_width_m
+                )
+            for x
+            in self.vertical_scanlines.iterrows()]
+            ).reset_index()
                 
         print('Vertical segments generated')
     
     def make_horizontal_segments(self):
         self.horizontal_segments = pd.concat(
-                [make_horizontal_segments(
-                        x, 
-                        step_increment = self.segment_step_increment_m,
-                        segment_width = self.segment_width_m
-                        )
-                for x
-                in self.horizontal_scanlines.iterrows()]
-                ).reset_index()
+            [make_horizontal_segments(
+                x, 
+                step_increment = self.segment_step_increment_m,
+                segment_width = self.segment_width_m
+                )
+            for x
+            in self.horizontal_scanlines.iterrows()]
+            ).reset_index()
                 
         print('Horizontal segments generated')
         
@@ -563,7 +587,7 @@ class FractureTrace(object):
         self.horizontal_segments_orig = self.horizontal_segments
         
         for mask in self.masks: 
-            for (i,line) in enumerate(self.horizontal_segments.geometry):
+            for (i,_) in enumerate(self.horizontal_segments.geometry):
                 self.horizontal_segments.geometry[i] = self.horizontal_segments.geometry[i].difference(mask)
         
         self.horizontal_segments['masked_geom'] = self.horizontal_segments.geometry
@@ -575,7 +599,7 @@ class FractureTrace(object):
         self.vertical_segments_orig = self.vertical_segments
         
         for mask in self.masks: 
-            for (i,line) in enumerate(self.vertical_segments.geometry):
+            for (i,_) in enumerate(self.vertical_segments.geometry):
                 self.vertical_segments.geometry[i] = self.vertical_segments.geometry[i].difference(mask)
         
         self.vertical_segments['masked_geom'] = self.vertical_segments.geometry
@@ -591,7 +615,7 @@ class FractureTrace(object):
             self.mask_vertical_segments()
         
         if self.show_figures:
-            fig, ax = plt.subplots(1, 1)
+            _, ax = plt.subplots(1, 1)
             if self.limit_direction_to != 'vertical':
                 (self
                  .horizontal_segments_orig[~self.horizontal_segments_orig.is_empty]
@@ -601,6 +625,7 @@ class FractureTrace(object):
                  .horizontal_segments[~self.horizontal_segments.is_empty]
                  .plot(color = 'r', ax=ax)
                  )
+            
             if self.limit_direction_to != 'horizontal':
                 (self
                  .vertical_segments_orig[~self.vertical_segments_orig.is_empty]
@@ -614,47 +639,51 @@ class FractureTrace(object):
             for mask in self.masks:
                 ax.plot(*mask.exterior.xy, color = 'k')
             
+            if self.save_figures:
+                plt.savefig('./output/masked_segments.pdf')
+                plt.savefig('./output/masked_segments.png')
+
             plt.show()
             
     def intersect_horizontal_segments(self):
         self.horiz_segment_intersections = [
-                self.traces.intersection(other = segment) 
-                for segment
-                in self.horizontal_segments.geometry
-                ]
+            self.traces.intersection(other = segment) 
+            for segment
+            in self.horizontal_segments.geometry
+            ]
         
         self.horiz_segment_intersected_traces = [
-                self.traces[np.invert(intersection.geometry.is_empty)] 
-                for intersection
-                in self.horiz_segment_intersections
-                ]
+            self.traces[np.invert(intersection.geometry.is_empty)] 
+            for intersection
+            in self.horiz_segment_intersections
+            ]
         
         self.horiz_segment_intersected_points = [
-                intersection[np.invert(intersection.is_empty)] 
-                for intersection
-                in self.horiz_segment_intersections
-                ]
+            intersection[np.invert(intersection.is_empty)] 
+            for intersection
+            in self.horiz_segment_intersections
+            ]
         
         print('Horizontal segments and traces intersected')
     
     def intersect_vertical_segments(self):
         self.vert_segment_intersections = [
-                self.traces.intersection(other = segment) 
-                for segment
-                in self.vertical_segments.geometry
-                ]
+            self.traces.intersection(other = segment) 
+            for segment
+            in self.vertical_segments.geometry
+            ]
         
         self.vert_segment_intersected_traces = [
-                self.traces[np.invert(intersection.geometry.is_empty)] 
-                for intersection
-                in self.vert_segment_intersections
-                ]
+            self.traces[np.invert(intersection.geometry.is_empty)] 
+            for intersection
+            in self.vert_segment_intersections
+            ]
         
         self.vert_segment_intersected_points = [
-                intersection[np.invert(intersection.is_empty)] 
-                for intersection
-                in self.vert_segment_intersections
-                ]
+            intersection[np.invert(intersection.is_empty)] 
+            for intersection
+            in self.vert_segment_intersections
+            ]
         
         print('Vertical segments and traces intersected')
     
@@ -666,7 +695,7 @@ class FractureTrace(object):
             self.intersect_vertical_segments()
         
         if self.show_figures:
-            fig, ax = plt.subplots(1, 1)
+            _, ax = plt.subplots(1, 1)
             self.traces.plot(color = 'k', ax=ax, alpha=0.5)
             
             if self.limit_direction_to != 'vertical':
@@ -689,35 +718,39 @@ class FractureTrace(object):
                         )
                 vert_points_series.plot(color = 'b', ax=ax, markersize=10)
             
+            if self.save_figures:
+                plt.savefig('./output/traces.pdf')
+                plt.savefig('./output/traces.png')
+
             plt.show()
     
     def calc_horizontal_segment_stats(self):
         point_trimmed_list = list(
-                zip([len(point) 
-                for point
-                in self.horiz_segment_intersected_points], 
-                self.horizontal_segments['masked_length'])
-                )
+            zip([len(point) 
+            for point
+            in self.horiz_segment_intersected_points], 
+            self.horizontal_segments['masked_length'])
+            )
         
         self.horizontal_segments['p10_masked'] = (
-                [x[0]/x[1] if x[1] > 0 else np.nan 
-                 for x in point_trimmed_list]
-                )
+            [x[0]/x[1] if x[1] > 0 else np.nan 
+                for x in point_trimmed_list]
+            )
        
         print('Horizontal segment stats calculated')
         
     def calc_vertical_segment_stats(self):
         point_trimmed_list = list(
-                zip([len(point) 
-                for point 
-                in self.vert_segment_intersected_points], 
-                self.vertical_segments['masked_length'])
-                )
+            zip([len(point) 
+            for point 
+            in self.vert_segment_intersected_points], 
+            self.vertical_segments['masked_length'])
+            )
         
         self.vertical_segments['p10_masked'] = (
-                [x[0]/x[1] if x[1] > 0 else np.nan 
-                 for x in point_trimmed_list]
-                )
+            [x[0]/x[1] if x[1] > 0 else np.nan 
+                for x in point_trimmed_list]
+            )
         
         print('Vertical segment stats calculated')
         
@@ -748,14 +781,14 @@ class FractureTrace(object):
         horiz_limits = list(self.traces.total_bounds[i] for i in [0,2])
         
         x_coords = np.arange(
-                min(horiz_limits) + self.window_step_increment_m/2, 
-                max(horiz_limits), self.window_step_increment_m
-                )
+            min(horiz_limits) + self.window_step_increment_m/2, 
+            max(horiz_limits), self.window_step_increment_m
+            )
         
         y_coords = np.arange(
-                min(vert_limits) + self.window_step_increment_m/2, 
-                max(vert_limits), self.window_step_increment_m
-                )
+            min(vert_limits) + self.window_step_increment_m/2, 
+            max(vert_limits), self.window_step_increment_m
+            )
        
         x,y,w = np.meshgrid(x_coords, y_coords, self.window_width_m)
         x_array = np.concatenate(np.concatenate(x))
@@ -769,31 +802,31 @@ class FractureTrace(object):
         names = ['window_' + str(i) for i in np.arange(0,len(polygons))+1]
                 
         self.windows = gpd.GeoDataFrame({
-                    'name': names,
-                    'x_coord': x_array,
-                    'y_coord': y_array},
-                    geometry = polygons
-                    )
+            'name': names,
+            'x_coord': x_array,
+            'y_coord': y_array},
+            geometry = polygons
+            )
             
         self.windows['orig_width'] = (
-                self.windows.bounds.iloc[:,2] 
-                - self.windows.bounds.iloc[:,0]
-                )
+            self.windows.bounds.iloc[:,2] 
+            - self.windows.bounds.iloc[:,0]
+            )
         
         self.windows['orig_height'] = (
-                self.windows.bounds.iloc[:,3] 
-                - self.windows.bounds.iloc[:,1]
-                )
+            self.windows.bounds.iloc[:,3] 
+            - self.windows.bounds.iloc[:,1]
+            )
         
         self.windows['orig_area'] = self.windows.area
         
         print('Windows generated')
         
         if self.show_figures:
-            fig, ax = plt.subplots(1, 1)
+            _, ax = plt.subplots(1, 1)
             self.traces.plot(color = 'k', ax=ax)
             
-            for index,row in self.windows.iterrows():
+            for _,row in self.windows.iterrows():
                 if row.geometry.is_empty:
                     []
                 elif isinstance(row.geometry,geometry.multipolygon.MultiPolygon):
@@ -801,27 +834,31 @@ class FractureTrace(object):
                         plt.plot(*polygon.exterior.xy)
                 else:
                     ax.plot(*row.geometry.exterior.xy)
-                
+
+            if self.save_figures:
+                plt.savefig('./output/windows.pdf')
+                plt.savefig('./output/windows.png')
+
             plt.show()
             
     def mask_windows(self):
         self.windows_orig = self.windows
         
         for mask in self.masks: 
-            for (i,window) in enumerate(self.windows.geometry):
+            for (i,_) in enumerate(self.windows.geometry):
                 self.windows.geometry[i] = self.windows.geometry[i].difference(mask)
         
         self.windows['masked_geom'] = self.windows.geometry
         
         self.windows['masked_width'] = (
-                self.windows.bounds.iloc[:,2] 
-                - self.windows.bounds.iloc[:,0]
-                )
+            self.windows.bounds.iloc[:,2] 
+            - self.windows.bounds.iloc[:,0]
+            )
         
         self.windows['masked_height'] = (
-                self.windows.bounds.iloc[:,3] 
-                - self.windows.bounds.iloc[:,1]
-                )
+            self.windows.bounds.iloc[:,3] 
+            - self.windows.bounds.iloc[:,1]
+            )
         
         self.windows['masked_area'] = self.windows.area
         self.windows['masked_length'] = self.windows.length
@@ -829,13 +866,13 @@ class FractureTrace(object):
         print('Masking windows (saved & overwritten)')
         
         if self.show_figures:
-            fig, ax = plt.subplots(1, 1)
+            _, ax = plt.subplots(1, 1)
             self.traces.plot(color = 'k', ax=ax)
             
             for mask in self.masks:
                 ax.plot(*mask.exterior.xy, color = 'k')
             
-            for index,row in self.windows.iterrows():
+            for _,row in self.windows.iterrows():
                 if row.geometry.is_empty:
                     []
                 elif isinstance(row.geometry,geometry.multipolygon.MultiPolygon):
@@ -844,28 +881,32 @@ class FractureTrace(object):
                 else:
                     ax.plot(*row.geometry.exterior.xy)
             
+            if self.save_figures:
+                plt.savefig('./output/masked_windows.pdf')
+                plt.savefig('./output/masked_windows.png')
+
             plt.show()
         
     def intersect_windows(self):
         self.windows_intersections = [
-                self.traces.intersection(other = window) if
-                ~window.is_empty else Polygon()
-                for window
-                in self.windows.geometry
-                ]
+            self.traces.intersection(other = window) if
+            ~window.is_empty else Polygon()
+            for window
+            in self.windows.geometry
+            ]
         
         self.windows_intersected_traces = [
-                intersection[np.invert(intersection.is_empty)] 
-                for intersection
-                in self.windows_intersections
-                ]
+            intersection[np.invert(intersection.is_empty)] 
+            for intersection
+            in self.windows_intersections
+            ]
         
         print('Windows and traces intersected')
         
         if self.show_figures:
-            fig, ax = plt.subplots(1, 1)
+            _, ax = plt.subplots(1, 1)
             
-            for index,row in self.windows.iterrows():
+            for _,row in self.windows.iterrows():
                 if row.geometry.is_empty:
                     []
                 elif isinstance(row.geometry,geometry.multipolygon.MultiPolygon):
@@ -875,11 +916,15 @@ class FractureTrace(object):
                     ax.plot(*row.geometry.exterior.xy)
             
             [x.plot(ax=ax, color = 'r') 
-            for x 
-            in self.windows_intersected_traces
-            if ~x.is_empty.all() 
-            ]
+                for x 
+                in self.windows_intersected_traces
+                if ~x.is_empty.all() 
+                ]
             
+            if self.save_figures:
+                plt.savefig('./output/intersected_windows.pdf')
+                plt.savefig('./output/intersected_windows.png')
+
             plt.show()
         
     def calc_window_stats(self):

@@ -1,4 +1,11 @@
 # -*- coding: utf-8 -*-
+import math
+import numpy as np
+import pandas as pd
+import scipy.spatial.distance as ssd
+from scipy import spatial
+import matplotlib.pyplot as plt
+
 def calc_row_idx(k, n):
     return int(math.ceil((1/2.) * (- (-8*k + 4 *n**2 -4*n - 7)**0.5 + 2*n -1) - 1))
 
@@ -237,7 +244,7 @@ class Variogram(object):
         vals_array[x_idx, y_idx] = np.array(z.iloc[:,0])
         z_vals = vals_array.T
         
-        plt.contourf(x_vals,y_vals,z_vals, cmap = plt.cm.inferno)
+        plt.contourf(x_vals,y_vals,z_vals, cmap = plt.get_cmap('inferno'))
         plt.xlabel(r'x lag (m)')
         plt.ylabel(r'y lag (m)')
         plt.title('Variogram Map: ' + self.val_col)
@@ -258,7 +265,7 @@ class Variogram(object):
         vals_array[x_idx, y_idx] = np.array(z.iloc[:,0])
         z_vals = vals_array.T
         
-        plt.contourf(x_vals,y_vals,z_vals, cmap = plt.cm.inferno)
+        plt.contourf(x_vals,y_vals,z_vals, cmap = plt.get_cmap('inferno'))
         plt.xlabel(r'x lag (m)')
         plt.ylabel(r'y lag (m)')
         plt.title('Pairs Plot: ' + self.val_col)
