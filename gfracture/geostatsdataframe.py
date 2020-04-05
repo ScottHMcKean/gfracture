@@ -5,7 +5,7 @@ from scipy import spatial
 
 class GeostatsDataFrame(object):
     """A class to load an transform a table of xy + feature values into
-    a GSLIB compliant dataframe for variogram modelling and simulation"""
+    a compliant dataframe for variogram calculations"""
     
     coord_cols = {'x':'x', 'y':'y'}
     random_seed = np.random.seed(73073)
@@ -26,21 +26,26 @@ class GeostatsDataFrame(object):
             .str.replace('(', '')
             .str.replace(')', '')
             )
-            
+
         print(self.input.head())
         
-    def set_coord_cols(self, coord_tuple):
-        """Input a string tuple to set the coord_cols dictionary"""
+    def set_coords(self, coord_tuple):
+        """
+        Input a string tuple to set the coord_cols dictionary with 
+        a minimum value of zero for 'x' and 'y'
+        """
         self.coord_cols['x'] = coord_tuple[0]
+        self.input['x'] = self.input[coord_tuple[0]] - self.input[coord_tuple[0]].min() 
         self.coord_cols['y'] = coord_tuple[1]
+        self.input['y'] = self.input[coord_tuple[1]] - self.input[coord_tuple[1]].min() 
         print('Coordinate Columns:')
-        print(self.input[self.coord_cols.values()].head())
+        print(self.input[['x','y']].head())
         
-    def set_feature_cols(self, feature_list):
+    def set_features(self, feature_list):
         """Input a list of strings corresponding to desired feature columns"""
         self.feature_cols = feature_list
         print('Feature Columns')
-        print(self.input[self.feature_cols].head())
+        print(self.input.loc[:,self.feature_cols].head())
         
     def z_scale_feats(self):
         feat_df = self.input[self.feature_cols]
@@ -67,15 +72,14 @@ class GeostatsDataFrame(object):
     def n_transform_feats(self):
         """ N-score transform using van der Waerden's method (Conover, 1999)"""
         feat_df = self.input[self.feature_cols]
-
         
         norm_df = feat_df.apply(lambda x : norm.ppf(rankdata(x)/(len(x) + 1)))     
         norm_df.columns = 'n_' + norm_df.columns
         self.nscore_cols = list(norm_df.columns)
         self.nscore_scores = feat_df.apply(lambda x : rankdata(x)/(len(x) + 1))
         self.nscore_factor = np.array(
-                feat_df.apply(lambda x: x/norm_df['n_' + x.name])
-                )
+            feat_df.apply(lambda x: x/norm_df['n_' + x.name])
+            )
         try:
             self.output = pd.merge(
                 self.output, norm_df, left_index = True, right_index = True
