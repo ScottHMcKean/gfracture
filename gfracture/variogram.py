@@ -3,7 +3,6 @@ import math
 import numpy as np
 import pandas as pd
 import scipy.spatial.distance as ssd
-from scipy import spatial
 import matplotlib.pyplot as plt
 
 def calc_row_idx(k, n):
@@ -63,16 +62,17 @@ class Variogram(object):
         self.lags_orig = self.lags.copy()
         
     def calculate_lags(self):
-        h = ssd.pdist(self.gs_df[['x','y']])
-        x = ssd.pdist(self.gs_df[['x']], lambda u,v : u-v)
-        y = ssd.pdist(self.gs_df[['y']], lambda u,v : u-v)
+        h = ssd.squareform(ssd.pdist(self.gs_df[['x','y']])).flatten()
+        x = ssd.squareform(ssd.pdist(self.gs_df[['x']], lambda u,v : u-v)).flatten()
+        y = ssd.squareform(ssd.pdist(self.gs_df[['y']], lambda u,v : u-v)).flatten()
         self.lags = pd.DataFrame({'xy_dist': h, 'x_dist': x, 'y_dist': y})
 
     def map_values_to_lags(self):
         pairs = pd.DataFrame(
-                [self.condensed_to_square(i) for i in range(0,len(self.lags))],
-                columns = ('pt_1', 'pt_2')
-                )
+            np.transpose(np.unravel_index(list(range(0,len(self.lags))),
+                (len(self.gs_df),len(self.gs_df)))
+                ), columns=('pt_1','pt_2')
+            )
         
         self.lags = pd.concat([self.lags.reset_index(drop=True), pairs], axis=1)
         
@@ -112,11 +112,11 @@ class Variogram(object):
     
     def filter_lags_azimuth(self):
         self.lags = self.lags[
-                self.lags.azimuth_dist <= self.azi_tol_rad
+                abs(self.lags.azimuth_dist) <= self.azi_tol_rad
                 ]
         
         self.lags = self.lags[
-                self.lags.bandwidth_dist <= self.bandwidth_tolerance
+                abs(self.lags.bandwidth_dist) <= self.bandwidth_tolerance
                 ]
     
     def calc_lag_semivariance(self, lag_bin):
@@ -205,25 +205,23 @@ class Variogram(object):
                 )[1:-1]
         
         y_lags = np.linspace(
-                self.lags.x_dist.min(), 
-                self.lags.x_dist.max(), 
+                self.lags.y_dist.min(), 
+                self.lags.y_dist.max(), 
                 self.n_lags+2
                 )[1:-1]
         
         self.map_xx, self.map_yy = np.meshgrid(x_lags, y_lags, sparse = True)
         
     def set_map_lag_tolerance(self):
-        self.map_lag_tolerance = np.max([
-                np.diff(self.map_xx).min()/2,
-                np.diff(np.transpose(self.map_yy)).min()/2
-                ])*1.05
+        self.map_lag_x_tol = np.diff(self.map_xx).mean()/2*1.02
+        self.map_lag_y_tol = np.diff(np.transpose(self.map_yy)).mean()/2*1.02
 
     def calc_map_semivariance(self, x, y):
         lag_df = self.lags[
-                    (self.lags.x_dist >= x - self.map_lag_tolerance) 
-                    & (self.lags.x_dist <= x + self.map_lag_tolerance)
-                    & (self.lags.y_dist >= y - self.map_lag_tolerance)
-                    & (self.lags.y_dist <= y + self.map_lag_tolerance)
+                    (self.lags.x_dist >= x - self.map_lag_x_tol) 
+                    & (self.lags.x_dist <= x + self.map_lag_x_tol)
+                    & (self.lags.y_dist >= y - self.map_lag_y_tol)
+                    & (self.lags.y_dist <= y + self.map_lag_y_tol)
                     ]
         
         n_pairs = len(lag_df.index)
@@ -265,7 +263,7 @@ class Variogram(object):
             plt.ylim([-lag_limit,lag_limit])
         plt.show()
         
-    def plot_npairs_map(self, lag_limit = 500):
+    def plot_npairs_map(self, lag_limit = None):
 
         x = self.variogram_map[['x']]
         y = self.variogram_map[['y']]
