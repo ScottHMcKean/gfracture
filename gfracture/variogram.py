@@ -23,6 +23,8 @@ class Variogram(object):
     azimuth_tolerance_deg = 45
     epsilon = 1.0e-5
     standardize_sill=False
+    save_figures = True
+    show_figures = True
     
     def __init__(self, geostats_df, val_col_str):
         self.gs_df = geostats_df
@@ -30,7 +32,7 @@ class Variogram(object):
         self.val_col_var = self.gs_df.loc[:,self.val_col].std()**2
         self.n_lags = round(self.gs_df.shape[0]/10)
         self.max_dist = max(self.gs_df.x.max(), self.gs_df.y.max())
-        self.bandwidth_tolerance = self.max_dist/4
+        self.bandwidth_tolerance = self.max_dist/2
     
         self.convert_azi_tol()
 
@@ -253,14 +255,16 @@ class Variogram(object):
         vals_array.fill(np.nan)
         vals_array[x_idx, y_idx] = np.array(z.iloc[:,0])
         z_vals = vals_array.T
-        
-        plt.contourf(x_vals,y_vals,z_vals, cmap = plt.get_cmap('inferno'))
+
         plt.xlabel(r'x lag (m)')
         plt.ylabel(r'y lag (m)')
         plt.title('Variogram Map: ' + self.val_col)
         if lag_limit is not None: 
             plt.xlim([-lag_limit,lag_limit])
             plt.ylim([-lag_limit,lag_limit])
+        if self.save_figures:
+                plt.savefig('./output/variogram_map.pdf')
+                plt.savefig('./output/variogram_map.png')
         plt.show()
         
     def plot_npairs_map(self, lag_limit = None):
@@ -276,11 +280,16 @@ class Variogram(object):
         vals_array[x_idx, y_idx] = np.array(z.iloc[:,0])
         z_vals = vals_array.T
         
-        plt.contourf(x_vals,y_vals,z_vals, cmap = plt.get_cmap('inferno'))
-        plt.xlabel(r'x lag (m)')
-        plt.ylabel(r'y lag (m)')
-        plt.title('Pairs Plot: ' + self.val_col)
-        if lag_limit is not None: 
-            plt.xlim([-lag_limit,lag_limit])
-            plt.ylim([-lag_limit,lag_limit])
-        plt.show()
+        if self.show_figures:
+            plt.contourf(x_vals,y_vals,z_vals, cmap = plt.get_cmap('plasma'))
+            plt.axes().set_aspect('equal')
+            plt.xlabel(r'x lag (m)')
+            plt.ylabel(r'y lag (m)')
+            plt.title('Pairs Plot: ' + self.val_col)
+            if lag_limit is not None: 
+                plt.xlim([-lag_limit,lag_limit])
+                plt.ylim([-lag_limit,lag_limit])
+            if self.save_figures:
+                plt.savefig('./output/pairs_plot.pdf')
+                plt.savefig('./output/paris_plot.png')
+            plt.show()

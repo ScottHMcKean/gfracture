@@ -37,7 +37,7 @@ trace.write_segment_tables()
 
 # make rolling windows
 trace.window_width_m = 0.1
-trace.window_step_increment_m = 0.075
+trace.window_step_increment_m = 0.1
 trace.make_windows()
 trace.mask_windows()
 trace.intersect_windows()
