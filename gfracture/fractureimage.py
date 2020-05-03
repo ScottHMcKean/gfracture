@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 from skimage import io, measure, util
 from skimage.restoration import denoise_bilateral
 from skimage.feature import canny
+from skimage.filter import sobel, sobel_h, sobel_v, apply_hysteresis_threshold
+from skimage.exposure import equalize_hist, rescale_intensity
 from skimage.morphology import binary_closing, square
 from skimage.transform import probabilistic_hough_line
 from skimage.segmentation import clear_border
@@ -16,7 +18,8 @@ class FractureImage(object):
     
     denoise_spatial_sd = 0.33
     canny_method = None
-    canny_threshold = 0.5
+    canny_sigma = None
+    canny_threshold = (0,1)
     gap_fill_px = 3
     show_figures = False
     save_figures = False
@@ -27,7 +30,8 @@ class FractureImage(object):
     phough_accumulator_threshold = 100
     
     def __init__(self, filepath):
-        self.img = io.imread(filepath, as_gray = True)
+        self.img_orig = io.imread(filepath, as_gray = True)
+        self.img = self.img_orig.copy()
     
     def list_params(self):
         """ Print a list of object parameters """
@@ -44,9 +48,26 @@ class FractureImage(object):
         
     def show_img(self):
         """ Show image using io.imshow and matplotlib """
-        io.imshow(self.img)
-        plt.show()
-    
+        io.imshow(self.img_orig)
+        plt.show(block=False)
+
+    def equalize_img_hist(self, method = 'equalize'):
+        """ Equalize or rescale image histogram """
+        if method == 'rescale':
+            self.img_equalized = rescale_intensity(
+                self.img, in_range=np.percentile(self.img, (2, 98))
+                )
+        else:
+            self.img_equalized = equalize_hist(self.img)
+
+        self.img = self.img_equalized.copy()
+
+        if self.show_figures:
+            plot_img_hist(self.img)
+            plt.show(block=False)
+            io.imshow(self.img)
+            plt.show(block=False)
+
     def denoise(self):
         """ Run a bilateral denoise on the raw image """
         print('Denoising Image')
@@ -61,29 +82,58 @@ class FractureImage(object):
         
         if self.show_figures:
             io.imshow(self.img_denoised)
-            plt.show()
+            plt.show(block=False)
         
         if self.save_figures:
-            io.imsave('./output/img_denoised.png',util.img_as_ubyte(self.img_denoised))
+            io.imsave('./output/img_denoised.tif',util.img_as_ubyte(self.img_denoised))
+
+    def canny_edge(self, edge='horizontal'):
+        """Edge filter an image using the Canny algorithm."""
+        low = self.canny_threshold[0]*(self.img.max()-self.img.min())
+        high = self.canny_threshold[1]*(self.img.max()-self.img.min())
+
+        if edge =='horizontal':
+            magnitude = sobel_h(self.img).clip(min=0)
+        elif edge == 'vertical':
+            magnitude = sobel_v(self.img).clip(min=0)
+        else:
+            magnitude = sobel(self.img).clip(min=0)
+        
+        self.img_edges = apply_hysteresis_threshold(magnitude,low,high)
     
+    def sigma_to_mean_threshold(self, sigma):
+        mean = np.mean(self.img_denoised)
+        print(f"Mean: {mean:.3f}")
+        lower_threshold = max(self.img_denoised.min(), mean-sigma)
+        upper_threshold = min(self.img_denoised.max(), mean+sigma)
+        print(f"Mean Threshold: {lower_threshold:.2f} {upper_threshold:.2f}")
+        self.canny_threshold = (lower_threshold,upper_threshold)
+
+    def sigma_to_median_threshold(self, sigma):
+        median = np.median(self.img_denoised[np.nonzero(self.img_denoised)])
+        print(f"Median: {median:.3f}")
+        lower_threshold = max(self.img_denoised.min(), median-sigma)
+        upper_threshold = min(self.img_denoised.max(), median+sigma)
+        print(f"Median Threshold: {lower_threshold:.2f} {upper_threshold:.2f}")
+        self.canny_threshold = (lower_threshold,upper_threshold)
+
     def detect_edges(self):
         """ Run one of several modified Canny edge detectors on the denoised
             image.    
         """
         if self.canny_method == 'horizontal':
             print('Running Horizontal One-Way Gradient Canny Detector')
-            self.img_edges = canny_horiz(self.img_denoised, self.canny_threshold)
+            self.img_edges = canny_horiz(self.img_denoised, low_high_thresh=self.canny_threshold)
         else: 
             print('Running Standard Canny Detector')
-            self.img_edges = canny_std(self.img_denoised, self.canny_threshold)
+            self.img_edges = canny_std(self.img_denoised, low_high_thresh=self.canny_threshold)
         
         if self.show_figures:
             io.imshow(self.img_edges)
-            plt.show()
+            plt.show(block=False)
         
         if self.save_figures:
-            io.imsave('./output/img_edges.png',util.img_as_ubyte(self.img_edges))
-            io.imsave('./output/img_edges.eps',util.img_as_ubyte(self.img_edges))
+            io.imsave('./output/img_edges.tif',util.img_as_ubyte(self.img_edges))
             
     def close_gaps(self):
         """ Close small holes with binary closing to within x pixels """
@@ -94,11 +144,10 @@ class FractureImage(object):
         
         if self.show_figures:
             io.imshow(self.img_closededges)
-            plt.show()
+            plt.show(block=False)
         
         if self.save_figures:
-            io.imsave('./output/img_closededges.png',util.img_as_ubyte(self.img_closededges))
-            io.imsave('./output/img_closededges.eps',util.img_as_ubyte(self.img_closededges))
+            io.imsave('./output/img_closededges.tif',util.img_as_ubyte(self.img_closededges))
     
     def label_edges(self):
         """ Label connected edges/components using skimage wrapper """
@@ -112,11 +161,10 @@ class FractureImage(object):
              
         if self.show_figures:
             io.imshow(self.img_labelled)
-            plt.show()
+            plt.show(block=False)
 
         if self.save_figures:
-            io.imsave('./output/img_labelled.png',util.img_as_ubyte(self.img_labelled))
-            io.imsave('./output/img_labelled.eps',util.img_as_ubyte(self.img_labelled))
+            io.imsave('./output/img_labelled.tif',util.img_as_ubyte(self.img_labelled))
         
     def count_edges(self):
         """ Get a unique count of edges, omitting zero values  """       
@@ -138,7 +186,7 @@ class FractureImage(object):
                 line_gap=self.phough_line_gap_px,
                 threshold = self.phough_accumulator_threshold)
         
-        if self.show_figures:
+        if self.show_figures | self.save_figures:
             fig, ax = plt.subplots(1, 1)
             for line in self.lines:
                 p0, p1 = line
@@ -148,8 +196,9 @@ class FractureImage(object):
             ax.set_aspect('equal')
             if self.save_figures:
                 fig.savefig('./output/phough_transform.pdf')
-                fig.savefig('./output/phough_transform.png')
-            plt.show()
+                fig.savefig('./output/phough_transform.tif')
+            if self.show_figures:
+                plt.show(block=False)
             
     def convert_linestrings(self):
         """ Convert lines to geopandas linestrings """
@@ -163,8 +212,8 @@ class FractureImage(object):
             self.linestrings.plot()
             if self.save_figures:
                 plt.savefig('./output/linestrings.pdf')
-                plt.savefig('./output/linestrings.png')
-            plt.show()
+                plt.savefig('./output/linestrings.tif')
+            plt.show(block=False)
             
     def export_linestrings(self):
         """ Save geopandas linestrings as shapefile """
@@ -173,5 +222,3 @@ class FractureImage(object):
         self.linestrings.to_file(
             "./output/linestrings.shp",
             driver='ESRI Shapefile')
-    
-
