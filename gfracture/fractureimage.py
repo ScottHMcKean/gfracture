@@ -1,15 +1,14 @@
-import matplotlib.pyplot as plt
 from skimage import io, measure, util
 from skimage.restoration import denoise_bilateral
 from skimage.feature import canny
-from skimage.filter import sobel, sobel_h, sobel_v, apply_hysteresis_threshold
-from skimage.exposure import equalize_hist, rescale_intensity
+from skimage.filters import sobel, sobel_h, sobel_v, apply_hysteresis_threshold
+from skimage.exposure import equalize_hist, rescale_intensity, cumulative_distribution
 from skimage.morphology import binary_closing, square
 from skimage.transform import probabilistic_hough_line
 from skimage.segmentation import clear_border
 from shapely.geometry import LineString
+import matplotlib.pyplot as plt
 import geopandas as gpd
-from gfracture.canny import canny_std, canny_horiz
 import numpy as np
 
 class FractureImage(object):
@@ -17,17 +16,15 @@ class FractureImage(object):
     a core or outcrop image"""
     
     denoise_spatial_sd = 0.33
-    canny_method = None
-    canny_sigma = None
+    canny_edges = None
     canny_threshold = (0,1)
     gap_fill_px = 3
-    show_figures = False
-    save_figures = False
-
     min_large_edge_px = 50
     phough_min_line_length_px = 50
     phough_line_gap_px = 10
     phough_accumulator_threshold = 100
+    show_figures = True
+    save_figures = True
     
     def __init__(self, filepath):
         self.img_orig = io.imread(filepath, as_gray = True)
@@ -36,11 +33,11 @@ class FractureImage(object):
     def list_params(self):
         """ Print a list of object parameters """
         print('denoise_spatial_sd: ' + str(self.denoise_spatial_sd))
+        print('canny_edges: ' + str(self.canny_method))
         print('canny_threshold: ' + str(self.canny_threshold))
         print('gap_fill_px: ' + str(self.gap_fill_px)) 
         print('show_figures: ' + str(self.show_figures))
         print('save_figures: ' + str(self.save_figures))
-        print('canny_method: ' + str(self.canny_method))
         print('min_large_edge_px: ' + str(self.min_large_edge_px))
         print('phough_min_line_length_px: ' + str(self.phough_min_line_length_px))
         print('phough_line_gap_px: ' + str(self.phough_line_gap_px))
@@ -54,19 +51,31 @@ class FractureImage(object):
     def equalize_img_hist(self, method = 'equalize'):
         """ Equalize or rescale image histogram """
         if method == 'rescale':
-            self.img_equalized = rescale_intensity(
+            print('Rescaling image histogram')
+            self.img = rescale_intensity(
                 self.img, in_range=np.percentile(self.img, (2, 98))
                 )
         else:
-            self.img_equalized = equalize_hist(self.img)
-
-        self.img = self.img_equalized.copy()
+            print('Equalizing image histogram')
+            self.img = equalize_hist(self.img)
 
         if self.show_figures:
-            plot_img_hist(self.img)
+            self.plot_img_hist()
             plt.show(block=False)
             io.imshow(self.img)
             plt.show(block=False)
+
+    def plot_img_hist(self, num_bins=256):
+        """Plot an image along with its histogram and cumulative histogram."""
+        fig,ax1 = plt.subplots()
+        ax1.hist(
+            self.img[(self.img>self.img.min()) & ((self.img<self.img.max()))].ravel(), 
+            bins=num_bins, histtype='step', color='black'
+            )
+        ax2=ax1.twinx()
+        img_cdf, bins = cumulative_distribution(self.img, num_bins)
+        ax2.plot(bins, img_cdf, 'r')
+        plt.show()
 
     def denoise(self):
         """ Run a bilateral denoise on the raw image """
@@ -76,112 +85,103 @@ class FractureImage(object):
             print('setting denoise_spatial_sd to 0.15 (minimum value')
             self.denoise_spatial_sd = 0.15
         
-        self.img_denoised = denoise_bilateral(
+        self.img = denoise_bilateral(
                 self.img, sigma_spatial = self.denoise_spatial_sd, 
                 multichannel=False)
         
         if self.show_figures:
-            io.imshow(self.img_denoised)
+            io.imshow(self.img)
             plt.show(block=False)
-        
-        if self.save_figures:
-            io.imsave('./output/img_denoised.tif',util.img_as_ubyte(self.img_denoised))
 
-    def canny_edge(self, edge='horizontal'):
+    def detect_edges(self, filename=None):
         """Edge filter an image using the Canny algorithm."""
+        if filename is None:
+            filename='./output/phough_transform'
+
         low = self.canny_threshold[0]*(self.img.max()-self.img.min())
         high = self.canny_threshold[1]*(self.img.max()-self.img.min())
 
-        if edge =='horizontal':
+        if self.canny_edges =='horizontal':
+            print('Running One-Way Horizontal Edge Detector')
             magnitude = sobel_h(self.img).clip(min=0)
-        elif edge == 'vertical':
+        elif self.canny_edges == 'vertical':
+            print('Running One-Way Vertical Edge Detector')
             magnitude = sobel_v(self.img).clip(min=0)
         else:
+            print('Running One-Way Multidirectional Edge Detector')
             magnitude = sobel(self.img).clip(min=0)
         
-        self.img_edges = apply_hysteresis_threshold(magnitude,low,high)
+        self.edges = apply_hysteresis_threshold(magnitude,low,high)
+
+        if self.show_figures:
+            io.imshow(self.edges)
+            plt.show(block=False)
+        
+        if self.save_figures:
+            io.imsave(filename+'.tif',util.img_as_ubyte(self.edges))
     
     def sigma_to_mean_threshold(self, sigma):
-        mean = np.mean(self.img_denoised)
+        mean = np.mean(self.img)
         print(f"Mean: {mean:.3f}")
-        lower_threshold = max(self.img_denoised.min(), mean-sigma)
-        upper_threshold = min(self.img_denoised.max(), mean+sigma)
+        lower_threshold = max(self.img.min(), mean-sigma)
+        upper_threshold = min(self.img.max(), mean+sigma)
         print(f"Mean Threshold: {lower_threshold:.2f} {upper_threshold:.2f}")
         self.canny_threshold = (lower_threshold,upper_threshold)
 
     def sigma_to_median_threshold(self, sigma):
-        median = np.median(self.img_denoised[np.nonzero(self.img_denoised)])
+        median = np.median(self.img[np.nonzero(self.img)])
         print(f"Median: {median:.3f}")
-        lower_threshold = max(self.img_denoised.min(), median-sigma)
-        upper_threshold = min(self.img_denoised.max(), median+sigma)
+        lower_threshold = max(self.img.min(), median-sigma)
+        upper_threshold = min(self.img.max(), median+sigma)
         print(f"Median Threshold: {lower_threshold:.2f} {upper_threshold:.2f}")
         self.canny_threshold = (lower_threshold,upper_threshold)
-
-    def detect_edges(self):
-        """ Run one of several modified Canny edge detectors on the denoised
-            image.    
-        """
-        if self.canny_method == 'horizontal':
-            print('Running Horizontal One-Way Gradient Canny Detector')
-            self.img_edges = canny_horiz(self.img_denoised, low_high_thresh=self.canny_threshold)
-        else: 
-            print('Running Standard Canny Detector')
-            self.img_edges = canny_std(self.img_denoised, low_high_thresh=self.canny_threshold)
         
-        if self.show_figures:
-            io.imshow(self.img_edges)
-            plt.show(block=False)
-        
-        if self.save_figures:
-            io.imsave('./output/img_edges.tif',util.img_as_ubyte(self.img_edges))
-            
-    def close_gaps(self):
+    def close_edge_gaps(self):
         """ Close small holes with binary closing to within x pixels """
+        print('Closing binary edge gaps')
         
-        print('Closing binary gaps')
-        
-        self.img_closededges = binary_closing(self.img_edges, square(self.gap_fill_px))
+        self.edges = binary_closing(self.edges, square(self.gap_fill_px))
         
         if self.show_figures:
-            io.imshow(self.img_closededges)
+            io.imshow(self.edges)
             plt.show(block=False)
         
         if self.save_figures:
-            io.imsave('./output/img_closededges.tif',util.img_as_ubyte(self.img_closededges))
+            io.imsave('./output/closededges.tif',util.img_as_ubyte(self.edges))
     
     def label_edges(self):
         """ Label connected edges/components using skimage wrapper """
-        
         print('Labelling connected edges')
         
-        self.img_labelled = measure.label(self.img_closededges, 
-                                          connectivity=2, background=0)
+        self.edge_labels = measure.label(
+            self.edges, connectivity=2, background=0
+            )
         
-        print(str(len(np.unique(self.img_labelled))-1) + ' components identified')
-             
-        if self.show_figures:
-            io.imshow(self.img_labelled)
-            plt.show(block=False)
+        print(str(len(np.unique(self.edge_labels))-1) + ' components identified')
+        self.count_edges()
 
-        if self.save_figures:
-            io.imsave('./output/img_labelled.tif',util.img_as_ubyte(self.img_labelled))
+        if self.show_figures:
+            io.imshow(self.edge_labels)
+            plt.show(block=False)
         
     def count_edges(self):
         """ Get a unique count of edges, omitting zero values  """       
-        unique, counts = np.unique(self.img_labelled, return_counts=True)
+        unique, counts = np.unique(self.edge_labels, return_counts=True)
         self.edge_dict = dict(zip(unique, counts))
         self.edge_dict.pop(0)
         
-        edge_cov = sum(self.edge_dict.values()) / self.img_labelled.size * 100
+        edge_cov = sum(self.edge_dict.values()) / self.edge_labels.size * 100
         
         print(str(edge_cov) + '% edge coverage')
             
-    def run_phough_transform(self):
+    def run_phough_transform(self, filename=None):
         """ Run the Probabilistic Hough Transform """
         print('Running Probabilistic Hough Transform')
+        if filename is None:
+            filename='./output/phough_transform'
         
         self.lines = probabilistic_hough_line(
-                self.img_labelled,    
+                self.edge_labels,    
                 line_length=self.phough_min_line_length_px,
                 line_gap=self.phough_line_gap_px,
                 threshold = self.phough_accumulator_threshold)
@@ -191,18 +191,20 @@ class FractureImage(object):
             for line in self.lines:
                 p0, p1 = line
                 ax.plot((p0[0], p1[0]), (p0[1], p1[1]))
-            ax.set_xlim((0, self.img_labelled.shape[1]))
-            ax.set_ylim((self.img_labelled.shape[0], 0))
+            ax.set_xlim((0, self.edge_labels.shape[1]))
+            ax.set_ylim((self.edge_labels.shape[0], 0))
             ax.set_aspect('equal')
             if self.save_figures:
-                fig.savefig('./output/phough_transform.pdf')
-                fig.savefig('./output/phough_transform.tif')
+                fig.savefig(filename+'.pdf')
+                fig.savefig(filename+'.tif')
             if self.show_figures:
                 plt.show(block=False)
             
-    def convert_linestrings(self):
+    def convert_linestrings(self, filename=None):
         """ Convert lines to geopandas linestrings """
         print('Converting linestrings')
+        if filename is None:
+            filename='./output/linestrings'
                 
         self.linestrings = (gpd.GeoSeries(map(LineString, self.lines)).
                             affine_transform([1,0,0,-1,0,0])
@@ -211,14 +213,16 @@ class FractureImage(object):
         if self.show_figures:
             self.linestrings.plot()
             if self.save_figures:
-                plt.savefig('./output/linestrings.pdf')
-                plt.savefig('./output/linestrings.tif')
+                plt.savefig(filename+'.pdf')
+                plt.savefig(filename+'.tif')
             plt.show(block=False)
             
-    def export_linestrings(self):
+    def export_linestrings(self, filename=None):
         """ Save geopandas linestrings as shapefile """
         print('Exporting linestrings')
+        if filename is None:
+            filename='./output/linestrings'
         
         self.linestrings.to_file(
-            "./output/linestrings.shp",
+            filename+".shp",
             driver='ESRI Shapefile')

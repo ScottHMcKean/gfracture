@@ -8,9 +8,6 @@ import skimage.exposure as exposure
 
 # load and set output flags
 sample = FractureImage('./data/pavement2.png')
-
-
-
 sample.show_img()
 sample.list_params()
 sample.show_figures = False
