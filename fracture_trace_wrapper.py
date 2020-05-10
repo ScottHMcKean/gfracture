@@ -6,20 +6,22 @@ Created on Thu Jan 16 09:08:26 2020
 """
 from gfracture.fracturetrace import FractureTrace
 
+
 # Initialize and load
 trace = FractureTrace()
 trace.show_figures = True
 trace.save_figures = True
+trace.set_output_path('./output/AC_01/')
 trace.limit_direction_to = 'none'
-trace.load_vert_traces('./data/lines_vert.shp')
-trace.load_horiz_traces('./data/lines_horiz.shp')
+trace.load_vert_traces('./data/windows/AC1_01_lines_vert.shp')
+trace.load_horiz_traces('./data/windows/AC1_01_lines_horiz.shp')
 trace.combine_vert_horiz_traces()
-trace.load_masks('./data/perdrix_mask.shp')
-trace.scale(scale_m_px = 0.0038)
+trace.load_masks('./data/windows/window_mask.shp')
+trace.scale(scale_m_px = 0.001)
 trace.mask_traces()
 
 # Generate scanlines
-trace.scanline_distance_m = 1
+trace.scanline_distance_m = 0.05
 trace.make_scanlines()
 trace.mask_scanlines()
 trace.hull_scanlines()
@@ -38,8 +40,8 @@ trace.write_scanline_tables()
 #trace.write_segment_tables()
 
 # make rolling windows
-trace.window_width_m = 1
-trace.window_step_increment_m = 1
+trace.window_width_m = 0.05
+trace.window_step_increment_m = 0.05
 trace.make_windows()
 trace.mask_windows()
 trace.intersect_windows()

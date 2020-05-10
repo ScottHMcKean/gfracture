@@ -8,12 +8,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 from shapely import geometry
 from shapely.geometry import Point, LineString, Polygon
+from pathlib import Path
 
 class FractureTrace(object):
     """A class to contain the results of fracture trace analysis from 
     a vector file (shp,dxf,etc., or FractureImage object results"""
     
     show_figures = False
+    output_path = './output/'
     save_figures = False
     limit_direction_to = None  #'horizontal', 'vertical', or 'None'
     segment_width_m = 1
@@ -25,7 +27,11 @@ class FractureTrace(object):
     
     def __init__(self):
         []
-        
+    
+    def set_output_path(self, path):
+        self.output_path = path
+        Path(self.output_path).mkdir(parents=True, exist_ok=True)
+
     def list_params(self):
         """ Print a list of object parameters """
         print('show_figures: ' + str(self.show_figures))
@@ -52,8 +58,8 @@ class FractureTrace(object):
         if self.show_figures:
             self.traces.plot()
             if self.save_figures:
-                plt.savefig('./output/traces.pdf')
-                plt.savefig('./output/traces.png')
+                plt.savefig(self.output_path+'traces.pdf')
+                plt.savefig(self.output_path+'traces.png')
             plt.show(block=False)
 
     def load_traces(self, file_path):
@@ -65,8 +71,8 @@ class FractureTrace(object):
         if self.show_figures:
             self.traces.plot()
             if self.save_figures:
-                plt.savefig('./output/traces.pdf')
-                plt.savefig('./output/traces.png')
+                plt.savefig(self.output_path+'traces.pdf')
+                plt.savefig(self.output_path+'traces.png')
             plt.show(block=False)
             
     def load_masks(self, file_path):
@@ -114,8 +120,8 @@ class FractureTrace(object):
             for mask in self.masks:
                 ax.plot(*mask.exterior.xy, color = 'b')
             if self.save_figures:
-                plt.savefig('./output/masked_traces.pdf')
-                plt.savefig('./output/masked_traces.png')
+                plt.savefig(self.output_path+'masked_traces.pdf')
+                plt.savefig(self.output_path+'masked_traces.png')
             plt.show(block=False)
         
     def make_horizontal_scanlines(self):
@@ -190,8 +196,8 @@ class FractureTrace(object):
                 self.vertical_scanlines.plot(color = 'r', ax=ax)
 
             if self.save_figures:
-                plt.savefig('./output/scanlines.pdf')
-                plt.savefig('./output/scanlines.png')
+                plt.savefig(self.output_path+'scanlines.pdf')
+                plt.savefig(self.output_path+'scanlines.png')
             
             plt.show(block=False)
         
@@ -254,8 +260,8 @@ class FractureTrace(object):
                 ax.plot(*mask.exterior.xy, color = 'k')
 
             if self.save_figures:
-                plt.savefig('./output/masked_scanlines.pdf')
-                plt.savefig('./output/masked_scanlines.png')
+                plt.savefig(self.output_path+'masked_scanlines.pdf')
+                plt.savefig(self.output_path+'masked_scanlines.png')
             
             plt.show(block=False)
 
@@ -304,8 +310,8 @@ class FractureTrace(object):
                  .plot(color = 'b', ax=ax))
             
             if self.save_figures:
-                plt.savefig('./output/hulled_scanlines.pdf')
-                plt.savefig('./output/hulled_scanlines.png')
+                plt.savefig(self.output_path+'hulled_scanlines.pdf')
+                plt.savefig(self.output_path+'hulled_scanlines.png')
 
             plt.show(block=False)
                 
@@ -329,25 +335,42 @@ class FractureTrace(object):
             in self.horiz_scanline_intersections
             ]
         
+        point_bool = [
+            x.geom_type == 'Point' 
+            for x in self.horiz_scanline_intersected_points
+            ]
+
+        self.horiz_scanline_intersected_points = [
+            x.loc[y] 
+            for x,y in zip(self.horiz_scanline_intersected_points,point_bool)
+            ]
+        
         print('Horizontal scanlines and traces intersected')
     
     def intersect_vertical_scanlines(self):
         self.vert_scanline_intersections = [
             self.traces.intersection(other = scanline) 
-            for scanline
-            in self.vertical_scanlines.geometry
+            for scanline in self.vertical_scanlines.geometry
             ]
         
         self.vert_scanline_intersected_traces = [
             self.traces[np.invert(intersection.geometry.is_empty)] 
-            for intersection
-            in self.vert_scanline_intersections
+            for intersection in self.vert_scanline_intersections
             ]
         
         self.vert_scanline_intersected_points = [
             intersection[np.invert(intersection.is_empty)] 
-            for intersection
-            in self.vert_scanline_intersections
+            for intersection in self.vert_scanline_intersections
+            ]
+
+        point_bool = [
+            x.geom_type == 'Point' 
+            for x in self.vert_scanline_intersected_points
+            ]
+
+        self.vert_scanline_intersected_points = [
+            x.loc[y] 
+            for x,y in zip(self.vert_scanline_intersected_points,point_bool)
             ]
         
         print('Vertical scanlines and traces intersected')
@@ -388,8 +411,8 @@ class FractureTrace(object):
                 points_series.plot(color = 'b', ax=ax, markersize=10)
             
             if self.save_figures:
-                plt.savefig('./output/intersected_scanlines.pdf')
-                plt.savefig('./output/intersected_scanlines.png')
+                plt.savefig(self.output_path+'intersected_scanlines.pdf')
+                plt.savefig(self.output_path+'intersected_scanlines.png')
 
             plt.show(block=False)
     
@@ -402,7 +425,7 @@ class FractureTrace(object):
             
             if len(self.horiz_scanline_intersected_traces[i]) == 0:
                 continue
-            
+
             out_df = gpd.GeoDataFrame(
                 {'x' : self.horiz_scanline_intersected_points[i].x},
                 geometry = self.horiz_scanline_intersected_points[i]
@@ -413,8 +436,8 @@ class FractureTrace(object):
             out_df['distance'] = out_df['x'] - out_df['x'].min()
             out_df['spacing'] = np.append(0,np.diff(out_df['x']))
             out_df['height'] = np.array(
-                    self.horiz_scanline_intersected_traces[i].bounds.iloc[:,3]
-                    - self.horiz_scanline_intersected_traces[i].bounds.iloc[:,1]
+                self.horiz_scanline_intersected_points[i].bounds.iloc[:,3] 
+                - self.horiz_scanline_intersected_points[i].bounds.iloc[:,1]
                     )
             
             try:
@@ -436,7 +459,7 @@ class FractureTrace(object):
             
             if len(self.vert_scanline_intersected_traces[i]) == 0:
                 continue
-            
+
             out_df = gpd.GeoDataFrame(
                 {'y' : self.vert_scanline_intersected_points[i].y},
                 geometry = self.vert_scanline_intersected_points[i]
@@ -447,8 +470,8 @@ class FractureTrace(object):
             out_df['distance'] = out_df['y'] - out_df['y'].min()
             out_df['spacing'] = np.append(0,np.diff(out_df['y']))
             out_df['height'] = np.array(
-                    self.vert_scanline_intersected_traces[i].bounds.iloc[:,2]
-                    - self.vert_scanline_intersected_traces[i].bounds.iloc[:,0]
+                    self.vert_scanline_intersected_points[i].bounds.iloc[:,2]
+                    - self.vert_scanline_intersected_points[i].bounds.iloc[:,0]
                     )
             
             try:
@@ -550,26 +573,26 @@ class FractureTrace(object):
             (self
                 .horizontal_scanlines
                 .drop(['geometry', 'orig_geom', 'masked_geom','hull_trimmed'], axis=1)
-                .to_csv('horizontal_scanlines.csv')
+                .to_csv(self.output_path+'horizontal_scanlines.csv', index=False)
                 )
             
             (self
                 .horiz_scanline_spacing_df
                 .drop(['geometry'], axis=1)
-                .to_csv('horiz_scanline_spacing.csv')
+                .to_csv(self.output_path+'horiz_scanline_spacing.csv', index=False)
                 )
                 
         if self.limit_direction_to != 'horizontal':
             (self
                 .vertical_scanlines
                 .drop(['geometry', 'orig_geom', 'masked_geom','hull_trimmed'], axis=1)
-                .to_csv('vertical_scanlines.csv')
+                .to_csv(self.output_path+'vertical_scanlines.csv', index=False)
                 )
             
             (self
                 .vert_scanline_spacing_df
                 .drop(['geometry'], axis=1)
-                .to_csv('vert_scanline_spacing.csv')
+                .to_csv(self.output_path+'vert_scanline_spacing.csv', index=False)
                 )
             
     def make_vertical_segments(self):
@@ -662,8 +685,8 @@ class FractureTrace(object):
                 ax.plot(*mask.exterior.xy, color = 'k')
             
             if self.save_figures:
-                plt.savefig('./output/masked_segments.pdf')
-                plt.savefig('./output/masked_segments.png')
+                plt.savefig(self.output_path+'masked_segments.pdf')
+                plt.savefig(self.output_path+'masked_segments.png')
 
             plt.show(block=False)
             
@@ -741,8 +764,8 @@ class FractureTrace(object):
                 vert_points_series.plot(color = 'b', ax=ax, markersize=10)
             
             if self.save_figures:
-                plt.savefig('./output/traces.pdf')
-                plt.savefig('./output/traces.png')
+                plt.savefig(self.output_path+'traces.pdf')
+                plt.savefig(self.output_path+'traces.png')
 
             plt.show(block=False)
     
@@ -788,14 +811,14 @@ class FractureTrace(object):
             (self
              .horizontal_segments
              .drop(['geometry', 'orig_geom', 'masked_geom'], axis=1)
-             .to_csv('horizontal_segments.csv')
+             .to_csv(self.output_path+'horizontal_segments.csv', index=False)
              )
             
         if self.limit_direction_to != 'horizontal':
             (self
              .vertical_segments
              .drop(['geometry', 'orig_geom', 'masked_geom'], axis=1)
-             .to_csv('vertical_segments.csv')
+             .to_csv(self.output_path+'vertical_segments.csv', index=False)
              )
             
     def make_windows(self):
@@ -858,8 +881,8 @@ class FractureTrace(object):
                     ax.plot(*row.geometry.exterior.xy)
 
             if self.save_figures:
-                plt.savefig('./output/windows.pdf')
-                plt.savefig('./output/windows.png')
+                plt.savefig(self.output_path+'windows.pdf')
+                plt.savefig(self.output_path+'windows.png')
 
             plt.show(block=False)
             
@@ -904,8 +927,8 @@ class FractureTrace(object):
                     ax.plot(*row.geometry.exterior.xy)
             
             if self.save_figures:
-                plt.savefig('./output/masked_windows.pdf')
-                plt.savefig('./output/masked_windows.png')
+                plt.savefig(self.output_path+'masked_windows.pdf')
+                plt.savefig(self.output_path+'masked_windows.png')
 
             plt.show(block=False)
         
@@ -944,8 +967,8 @@ class FractureTrace(object):
                 ]
             
             if self.save_figures:
-                plt.savefig('./output/intersected_windows.pdf')
-                plt.savefig('./output/intersected_windows.png')
+                plt.savefig(self.output_path+'intersected_windows.pdf')
+                plt.savefig(self.output_path+'intersected_windows.png')
 
             plt.show(block=False)
         
@@ -980,5 +1003,5 @@ class FractureTrace(object):
         (self
          .windows
          .drop(['geometry','masked_geom'],axis=1)
-         .to_csv('windows.csv')
+         .to_csv(self.output_path+'windows.csv', index=False)
          )
