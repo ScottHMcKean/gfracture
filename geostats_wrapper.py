@@ -10,7 +10,7 @@ import scipy.spatial.distance as ssd
 import matplotlib.pyplot as plt
 
 # Initialize Geostats DataFrame
-gs_df = GeostatsDataFrame(filepath = './data/windows.csv')
+gs_df = GeostatsDataFrame(filepath = './perdrix_trace_analysis/windows.csv')
 gs_df.set_coords(['x_coord','y_coord'])
 gs_df.set_features(['p21_masked'])
 gs_df.z_scale_feats()
@@ -27,7 +27,7 @@ vgm.omni_variogram.plot('lag_bin','semivariance','scatter')
 vgm.write_omni_variogram()
 
 # get azimuth semivariogram for multiple azimuths
-for azimuth in [0, 45, 90]:
+for azimuth in [0, 30, 45, 60, 75, 90]:
     vgm.azimuth_cw_from_ns_deg = azimuth
     vgm.calc_azi_variogram()
     vgm.azi_variogram[

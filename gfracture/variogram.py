@@ -25,6 +25,7 @@ class Variogram(object):
     standardize_sill=False
     save_figures = True
     show_figures = True
+    output_path = './output/'
     
     def __init__(self, geostats_df, val_col_str):
         self.gs_df = geostats_df
@@ -156,7 +157,7 @@ class Variogram(object):
         self.omni_variogram['lag_bin'] = self.lag_bins
 
     def write_omni_variogram(self):
-        self.omni_variogram.to_csv('omni_variogram.csv')
+        self.omni_variogram.to_csv(self.output_path+'omni_variogram.csv')
         
     def calc_azi_variogram(self):
         self.lags = self.lags_orig.copy()
@@ -186,7 +187,7 @@ class Variogram(object):
             self.azi_variogram = azi_variogram
     
     def write_azi_variogram(self):
-        self.azi_variogram.to_csv('azi_variogram.csv')
+        self.azi_variogram.to_csv(self.output_path+'azi_variogram.csv')
     
     def make_variogram_map(self):
         self.lags = self.lags_orig.copy()
@@ -241,7 +242,7 @@ class Variogram(object):
                 ]
     
     def write_variogram_map(self):
-        self.variogram_map.to_csv('variogram_map.csv')
+        self.variogram_map.to_csv(self.output_path+'variogram_map.csv')
     
     def plot_variogram_map(self, lag_limit=None):
 
@@ -256,6 +257,8 @@ class Variogram(object):
         vals_array[x_idx, y_idx] = np.array(z.iloc[:,0])
         z_vals = vals_array.T
 
+        plt.contourf(x_vals,y_vals,z_vals, cmap = plt.get_cmap('plasma'))
+        plt.axes().set_aspect('equal')
         plt.xlabel(r'x lag (m)')
         plt.ylabel(r'y lag (m)')
         plt.title('Variogram Map: ' + self.val_col)
@@ -263,9 +266,12 @@ class Variogram(object):
             plt.xlim([-lag_limit,lag_limit])
             plt.ylim([-lag_limit,lag_limit])
         if self.save_figures:
-                plt.savefig('./output/variogram_map.pdf')
-                plt.savefig('./output/variogram_map.png')
-        plt.show()
+            plt.savefig(self.output_path+'variogram_map.pdf')
+            plt.savefig(self.output_path+'variogram_map.png')
+        if self.show_figures:
+            plt.show()
+        else:
+            plt.close()
         
     def plot_npairs_map(self, lag_limit = None):
 
@@ -280,16 +286,18 @@ class Variogram(object):
         vals_array[x_idx, y_idx] = np.array(z.iloc[:,0])
         z_vals = vals_array.T
         
+        plt.contourf(x_vals,y_vals,z_vals, cmap = plt.get_cmap('plasma'))
+        plt.axes().set_aspect('equal')
+        plt.xlabel(r'x lag (m)')
+        plt.ylabel(r'y lag (m)')
+        plt.title('Pairs Plot: ' + self.val_col)
+        if lag_limit is not None: 
+            plt.xlim([-lag_limit,lag_limit])
+            plt.ylim([-lag_limit,lag_limit])
+        if self.save_figures:
+            plt.savefig(self.output_path+'pairs_plot.pdf')
+            plt.savefig(self.output_path+'pairs_plot.png')
         if self.show_figures:
-            plt.contourf(x_vals,y_vals,z_vals, cmap = plt.get_cmap('plasma'))
-            plt.axes().set_aspect('equal')
-            plt.xlabel(r'x lag (m)')
-            plt.ylabel(r'y lag (m)')
-            plt.title('Pairs Plot: ' + self.val_col)
-            if lag_limit is not None: 
-                plt.xlim([-lag_limit,lag_limit])
-                plt.ylim([-lag_limit,lag_limit])
-            if self.save_figures:
-                plt.savefig('./output/pairs_plot.pdf')
-                plt.savefig('./output/paris_plot.png')
             plt.show()
+        else:
+            plt.close()

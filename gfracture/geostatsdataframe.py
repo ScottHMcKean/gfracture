@@ -48,7 +48,7 @@ class GeostatsDataFrame(object):
         print(self.input.loc[:,self.feature_cols].head())
         
     def z_scale_feats(self):
-        feat_df = self.input[self.feature_cols]
+        feat_df = self.input[self.feature_cols].dropna()
         
         # z-score transform
         scaled_df = (feat_df - feat_df.mean())/feat_df.std()
@@ -59,11 +59,13 @@ class GeostatsDataFrame(object):
         
         try:
             self.output = pd.merge(
-                self.output, scaled_df, left_index = True, right_index = True
+                self.output, scaled_df, how='left', 
+                left_index = True, right_index = True
                 )
         except:
             self.output = pd.merge(
-                self.input, scaled_df, left_index = True, right_index = True
+                self.input, scaled_df, how='left', 
+                left_index = True, right_index = True
                 )
         
         print('Created Z-score scaled features')
@@ -71,7 +73,7 @@ class GeostatsDataFrame(object):
         
     def n_transform_feats(self):
         """ N-score transform using van der Waerden's method (Conover, 1999)"""
-        feat_df = self.input[self.feature_cols]
+        feat_df = self.input[self.feature_cols].dropna()
         
         norm_df = feat_df.apply(lambda x : norm.ppf(rankdata(x)/(len(x) + 1)))     
         norm_df.columns = 'n_' + norm_df.columns
@@ -82,11 +84,13 @@ class GeostatsDataFrame(object):
             )
         try:
             self.output = pd.merge(
-                self.output, norm_df, left_index = True, right_index = True
+                self.output, norm_df, how='left', 
+                left_index = True, right_index = True
                 )
         except:
             self.output = pd.merge(
-                self.input, norm_df, left_index = True, right_index = True
+                self.input, norm_df, how='left', 
+                left_index = True, right_index = True
                 )
         
         print('Created N-score transformed features')
