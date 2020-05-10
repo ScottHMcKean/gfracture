@@ -33,7 +33,29 @@ class FractureTrace(object):
         print('segment_width_m: ' + str(self.window_width_m))
         print('segment_step_increment_m: ' + str(self.window_step_increment_m))
         print('scanline_distance_m: ' + str(self.scanline_distance_m))
+
+    def load_vert_traces(self, file_path):
+        """ Show image using io.imshow and matplotlib """
+        self.vert_traces = gpd.GeoDataFrame(gpd.read_file(file_path))
+        print('Traces loaded')
+
+    def load_horiz_traces(self, file_path):
+        """ Show image using io.imshow and matplotlib """
+        self.horiz_traces = gpd.GeoDataFrame(gpd.read_file(file_path))
+        print('Traces loaded')
+
+    def combine_vert_horiz_traces(self):
+        self.traces = pd.concat([self.horiz_traces, self.vert_traces])
+
+        print('Traces combined from vertical and horizontal')
         
+        if self.show_figures:
+            self.traces.plot()
+            if self.save_figures:
+                plt.savefig('./output/traces.pdf')
+                plt.savefig('./output/traces.png')
+            plt.show(block=False)
+
     def load_traces(self, file_path):
         """ Show image using io.imshow and matplotlib """
         self.traces = gpd.GeoDataFrame(gpd.read_file(file_path))
@@ -45,7 +67,7 @@ class FractureTrace(object):
             if self.save_figures:
                 plt.savefig('./output/traces.pdf')
                 plt.savefig('./output/traces.png')
-            plt.show()
+            plt.show(block=False)
             
     def load_masks(self, file_path):
         """ Loads mask, selects only polygons """
@@ -57,7 +79,7 @@ class FractureTrace(object):
         
         if self.show_figures:
             self.masks.plot()
-            plt.show()
+            plt.show(block=False)
             
     def scale(self, scale_m_px):
         """ Scale traces """
@@ -73,7 +95,7 @@ class FractureTrace(object):
         if self.show_figures:
             self.traces.plot(color = 'k')
             if hasattr(self, 'masks'): self.masks.plot(color = 'r')
-            plt.show()
+            plt.show(block=False)
             
     def mask_traces(self):
         """ Mask traces """
@@ -94,7 +116,7 @@ class FractureTrace(object):
             if self.save_figures:
                 plt.savefig('./output/masked_traces.pdf')
                 plt.savefig('./output/masked_traces.png')
-            plt.show()
+            plt.show(block=False)
         
     def make_horizontal_scanlines(self):
         """ Generate horizontal scanlines """
@@ -171,7 +193,7 @@ class FractureTrace(object):
                 plt.savefig('./output/scanlines.pdf')
                 plt.savefig('./output/scanlines.png')
             
-            plt.show()
+            plt.show(block=False)
         
     def mask_horizontal_scanlines(self):
         self.horizontal_scanlines_orig = self.horizontal_scanlines
@@ -235,7 +257,7 @@ class FractureTrace(object):
                 plt.savefig('./output/masked_scanlines.pdf')
                 plt.savefig('./output/masked_scanlines.png')
             
-            plt.show()
+            plt.show(block=False)
 
     def hull_horizontal_scanlines(self):
         self.horizontal_scanlines.geometry = [
@@ -285,7 +307,7 @@ class FractureTrace(object):
                 plt.savefig('./output/hulled_scanlines.pdf')
                 plt.savefig('./output/hulled_scanlines.png')
 
-            plt.show()
+            plt.show(block=False)
                 
     def intersect_horizontal_scanlines(self):
         self.horiz_scanline_intersections = [
@@ -369,7 +391,7 @@ class FractureTrace(object):
                 plt.savefig('./output/intersected_scanlines.pdf')
                 plt.savefig('./output/intersected_scanlines.png')
 
-            plt.show()
+            plt.show(block=False)
     
     def make_horiz_scanline_spacing_df(self):
         
@@ -643,7 +665,7 @@ class FractureTrace(object):
                 plt.savefig('./output/masked_segments.pdf')
                 plt.savefig('./output/masked_segments.png')
 
-            plt.show()
+            plt.show(block=False)
             
     def intersect_horizontal_segments(self):
         self.horiz_segment_intersections = [
@@ -722,7 +744,7 @@ class FractureTrace(object):
                 plt.savefig('./output/traces.pdf')
                 plt.savefig('./output/traces.png')
 
-            plt.show()
+            plt.show(block=False)
     
     def calc_horizontal_segment_stats(self):
         point_trimmed_list = list(
@@ -839,7 +861,7 @@ class FractureTrace(object):
                 plt.savefig('./output/windows.pdf')
                 plt.savefig('./output/windows.png')
 
-            plt.show()
+            plt.show(block=False)
             
     def mask_windows(self):
         self.windows_orig = self.windows
@@ -885,7 +907,7 @@ class FractureTrace(object):
                 plt.savefig('./output/masked_windows.pdf')
                 plt.savefig('./output/masked_windows.png')
 
-            plt.show()
+            plt.show(block=False)
         
     def intersect_windows(self):
         self.windows_intersections = [
@@ -925,7 +947,7 @@ class FractureTrace(object):
                 plt.savefig('./output/intersected_windows.pdf')
                 plt.savefig('./output/intersected_windows.png')
 
-            plt.show()
+            plt.show(block=False)
         
     def calc_window_stats(self):
         trace_count_list = list(
