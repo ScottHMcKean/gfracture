@@ -66,6 +66,9 @@ class FractureTrace(object):
         """ Show image using io.imshow and matplotlib """
         self.traces = gpd.GeoDataFrame(gpd.read_file(file_path))
         
+        #filter none traces
+        self.traces=self.traces[~self.traces.geom_type.isna()]
+
         print('Traces loaded')
         
         if self.show_figures:

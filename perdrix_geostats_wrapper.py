@@ -10,7 +10,8 @@ import scipy.spatial.distance as ssd
 import matplotlib.pyplot as plt
 
 # Initialize Geostats DataFrame
-gs_df = GeostatsDataFrame(filepath = './output/perdrix_trace_analysis/windows.csv')
+path = 'G:\\My Drive\\PhD\\Analysis\\outcrop_study\\flume_outcrop_interpretation\\flume_large_fractures_trace\\windows.csv'
+gs_df = GeostatsDataFrame(filepath = path)
 gs_df.set_coords(['x_coord','y_coord'])
 gs_df.set_features(['p21_masked'])
 gs_df.z_scale_feats()
