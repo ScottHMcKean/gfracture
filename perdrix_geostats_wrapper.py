@@ -19,6 +19,7 @@ gs_df.n_transform_feats()
 
 # Initialize a Variogram Object and calculate lags for everything
 vgm = Variogram(gs_df.output, 'n_p21_masked')
+vgm.set_output_path('./output/flume_large_fractures_geostats/')
 vgm.n_lags = 20
 vgm.get_lags_wrapper()
 

@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 import scipy.spatial.distance as ssd
 import matplotlib.pyplot as plt
+from pathlib import Path
 
 def calc_row_idx(k, n):
     return int(math.ceil((1/2.) * (- (-8*k + 4 *n**2 -4*n - 7)**0.5 + 2*n -1) - 1))
@@ -36,6 +37,10 @@ class Variogram(object):
         self.bandwidth_tolerance = self.max_dist/2
     
         self.convert_azi_tol()
+
+    def set_output_path(self, path):
+        self.output_path = path
+        Path(self.output_path).mkdir(parents=True, exist_ok=True)
 
     def convert_azimuth(self):
         """ Mathematical azimuth is measured counterclockwise from EW and
